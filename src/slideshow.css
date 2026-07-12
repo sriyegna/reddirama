@@ -57,10 +57,16 @@ body.busy-controls #topbar { z-index: 60; opacity: 1 !important; pointer-events:
 body.caught #message { background-color: rgba(0, 0, 0, .72) !important; }
 body.caught #topbar { opacity: 1 !important; }
 body.caught #controls { z-index: 55; opacity: 1 !important; background: none; pointer-events: none; }
-body.caught #controls > div { opacity: 0; }                    /* hide sound/filter + prev/play/next */
-body.caught #controls > div:last-child { opacity: 1; }         /* keep the right zone... */
-body.caught #controls #speed { visibility: hidden; }           /* ...but hide speed */
-body.caught #controls #order { pointer-events: auto; }         /* order/mode button: clickable, above the veil */
+body.caught #controls > div { opacity: 0; }                    /* hide the center zone (prev/play/next) */
+body.caught #controls > div:first-child,
+body.caught #controls > div:last-child { opacity: 1; }         /* keep the left (media filter) + right (order) zones... */
+body.caught #controls #sound,
+body.caught #controls #speed { visibility: hidden; }           /* ...but hide sound + speed */
+body.caught #controls #viewfilter,
+body.caught #controls #order { pointer-events: auto; }         /* media-filter + order button: clickable (so a restrictive filter is never a dead-end) */
+/* Error message ("couldn't load"): the slideshow never started, so the control bar would be inert.
+   Hide it and keep only the top bar (source dropdown + close X) — the close is always a way out. */
+body.caught:has(#msg-error:not(.hidden)) #controls { display: none; }
 
 /* When the UI is hidden, the links (title / r/ / u/) AND the bookmark button must NOT stay
    clickable: their pointer-events:auto (useful when the UI is visible) would survive the overlay's

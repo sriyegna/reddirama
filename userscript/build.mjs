@@ -19,7 +19,7 @@ const VIEWER_URL = 'https://zaaphod42.github.io/reddirama/';
 const VIEWER_ORIGIN = 'https://zaaphod42.github.io';
 // VIEWER build number, shown small and unobtrusive on the loading screen: lets Seb
 // VERIFY that he is seeing the latest version (and not a cached one). Bump this on every viewer build.
-const VIEWER_BUILD = '1.2.17';
+const VIEWER_BUILD = '1.2.18';
 
 const mediaSrc = strip(read('src/media.js'));            // normalizeSaved (userscript, reddit side)
 const orderSrc = strip(read('src/order.js'));            // nextMode / orderItems (viewer)
@@ -160,12 +160,17 @@ const viewerBoot = `
   // so another source can be picked without reloading.
   function onEmpty() {
     if (!msg) return;
+    var badge = document.getElementById('busy-badge');
     msg.classList.remove('hidden');
     if (loading) loading.classList.add('hidden');
     if (install) install.classList.add('hidden');
     if (errorEl) errorEl.classList.add('hidden');
     if (caughtMsg) caughtMsg.classList.add('hidden');
-    document.body.classList.remove('caught');
+    if (badge) badge.classList.add('hidden');
+    // Keep the dropdown / close / order / media-filter reachable over the message: a restrictive media
+    // filter (e.g. "videos only" on a sub with no videos) empties the pool, and the user must be able to
+    // change the filter back — otherwise the message is a dead-end.
+    document.body.classList.add('caught');
     if (emptyMsg) emptyMsg.classList.remove('hidden');
   }
 
@@ -295,8 +300,12 @@ const viewerBoot = `
     // Error reported by the userscript (edge case: not logged in). We hide the "Loading"
     // and show a clear message — that way the tab is never just black.
     if (d.type === 'rss-error') {
+      if (msg) msg.classList.remove('hidden');           // make sure the message container is shown
       if (loading) loading.classList.add('hidden');
       if (install) install.classList.add('hidden');
+      if (emptyMsg) emptyMsg.classList.add('hidden');
+      if (caughtMsg) caughtMsg.classList.add('hidden');
+      document.body.classList.add('caught');             // keep the close X (+ dropdown) reachable; the CSS hides the inert control bar for errors
       if (errorEl) errorEl.classList.remove('hidden');
       return;
     }
@@ -527,13 +536,13 @@ const viewerHtml =
     + '</div>'
     // (d) Empty source: fully received but no media (text-only sub/profile) => clear message.
     + '<div id="msg-empty" class="hidden flex flex-col items-center gap-3 max-w-md">'
-      + '<p class="text-base text-white/80">No media found in this source.</p>'
-      + '<p class="text-sm text-white/50">Pick another source from the menu, top left.</p>'
+      + '<p class="text-base text-white/80">Nothing to show here.</p>'
+      + '<p class="text-sm text-white/50">Try a different filter or order (bottom), or pick another source (top left).</p>'
     + '</div>'
     // (e) "Unseen" exhausted: you have seen every post in this source (no looping back onto seen ones).
     + '<div id="msg-caught" class="hidden flex flex-col items-center gap-3 max-w-md">'
       + '<p class="text-base text-white/80">You&rsquo;re all caught up.</p>'
-      + '<p class="text-sm text-white/50">You&rsquo;ve seen everything in this source. Pick another from the menu, top left.</p>'
+      + '<p class="text-sm text-white/50">You&rsquo;ve seen everything here. Try a different filter or order (bottom), or pick another source (top left).</p>'
     + '</div>'
   + '</div>'
   + '<script>\n' + orderSrc + '\n' + coreSrc + '\n' + viewerBoot + '\n</script>'
