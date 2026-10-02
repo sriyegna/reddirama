@@ -859,35 +859,29 @@ export function startSlideshow({ items, kind = 'saved', feedSorts, slideSeconds 
     dragStartX = null; dragStartY = null;
     if (wasScrub) { endVideoScrub(true); return; }               // end of a video scrub
     const it = current();
-    // VERTICAL swipe = VOTE (up = upvote, down = downvote). Must dominate the horizontal
+        // VERTICAL swipe = PREV/NEXT (up = next, down = prev). Must dominate the horizontal
     // movement (so it isn't confused with an album swipe) and clear SWIPE_V_MIN. Videos: a
-    // horizontal drag already scrubbed (handled above), a vertical drag never scrubs => votes here.
+    // horizontal drag already scrubbed (handled above), a vertical drag never scrubs => navigates here.
     if (Math.abs(dy) > SWIPE_V_MIN && Math.abs(dy) > Math.abs(dx)) {
-      doVote(dy < 0 ? 1 : -1);
-      if (chromeVisible()) armIdle();
+      if (dy < 0) next(); else prev();
+      if (!state.playing) setPlaying(true);
+      showChrome();
       return;
     }
     if (Math.abs(dx) > SWIPE_MIN) {                              // wide horizontal drag
       if (it && it.type === 'gallery') { advance(dx < 0 ? 1 : -1, true); if (chromeVisible()) armIdle(); } // album swipe
       return;                                                    // simple image / other: a drag doesn't navigate
     }
-    const x = e.clientX;                                         // TAP (small movement)
     let reveal = true;                                           // a tap reveals the UI, except a double-tap (below)
-    if (x >= window.innerWidth / 3 && x <= window.innerWidth * 2 / 3) {
-      // CENTER ZONE: DOUBLE tap = pause; SINGLE tap = resume (if paused). No delay: the single tap
-      // acts immediately, a quick 2nd tap pauses on top. (Detection via e.timeStamp, monotonic.)
-      if (e.timeStamp - lastCenterTap < DOUBLE_TAP_MS) {
-        lastCenterTap = 0;                                       // double tap consumed
-        if (state.playing) { setPlaying(false); flashState(false); }
-        reveal = false;                                          // a double-tap (pause) must NOT leave the menu out
-      } else {
-        lastCenterTap = e.timeStamp;
-        if (!state.playing) { setPlaying(true); flashState(true); }
-      }
+    // DOUBLE tap = pause; SINGLE tap = resume (if paused). No delay: the single tap
+    // acts immediately, a quick 2nd tap pauses on top. (Detection via e.timeStamp, monotonic.)
+    if (e.timeStamp - lastCenterTap < DOUBLE_TAP_MS) {
+      lastCenterTap = 0;                                         // double tap consumed
+      if (state.playing) { setPlaying(false); flashState(false); }
+      reveal = false;                                            // a double-tap (pause) must NOT leave the menu out
     } else {
-      // LEFT / RIGHT zones: previous / next. If we were PAUSED, RESTART at the same time.
-      if (x < window.innerWidth / 3) prev(); else next();
-      if (!state.playing) setPlaying(true);
+      lastCenterTap = e.timeStamp;
+      if (!state.playing) { setPlaying(true); flashState(true); }
     }
     // ANY tap reveals the UI — even a tap whose only purpose is to resume from pause (Seb's request).
     // Swipes, video scrubs and swipe-votes all returned earlier, so those gestures never reveal it.
